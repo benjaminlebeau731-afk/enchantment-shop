@@ -39,7 +39,7 @@
 
     <!-- Shipping Banner -->
     <div class="bg-slate-800 text-slate-300 text-sm text-center py-2 border-b border-slate-700">
-        <span class="font-bold text-violet-400">Shipping Info:</span> All orders require a +1 Emerald delivery fee.
+        <span class="font-bold text-violet-400">Shipping Info:</span> All orders require a +1 Emerald delivery fee. (Limit 8 items per day)
     </div>
 
     <!-- Mobile Category Navigation (Visible only on small screens) -->
@@ -78,6 +78,12 @@
         <div class="border-t border-slate-700 mt-4 pt-4 mb-2 flex justify-between text-sm">
             <span class="text-slate-400">Shipping Fee</span>
             <span class="text-emerald-400 font-bold">+1 Emerald</span>
+        </div>
+        
+        <!-- Daily Limit Tracker -->
+        <div class="mb-4 flex justify-between text-sm">
+            <span class="text-slate-400">Daily Limit</span>
+            <span id="daily-limit-display" class="text-violet-400 font-bold">0/8</span>
         </div>
 
         <button id="checkout-btn" onclick="initiateCheckout()" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg mt-4 disabled:opacity-50">Checkout</button>
@@ -149,6 +155,18 @@
         ];
 
         let cart = [];
+        const MAX_DAILY_ITEMS = 8;
+
+        function getDailyOrderData() {
+            const today = new Date().toLocaleDateString();
+            const storedDate = localStorage.getItem('lastOrderDate');
+            let ordersToday = parseInt(localStorage.getItem('ordersToday')) || 0;
+
+            if (storedDate !== today) {
+                ordersToday = 0; // Reset count on a new day
+            }
+            return { today, ordersToday };
+        }
 
         function renderProducts(filter = "All") {
             const grid = document.getElementById('product-grid');
@@ -178,6 +196,13 @@
         }
 
         function addToCart(name, price) {
+            const { ordersToday } = getDailyOrderData();
+            
+            if (ordersToday + cart.length >= MAX_DAILY_ITEMS) {
+                alert(`Daily limit reached! You can only order a maximum of ${MAX_DAILY_ITEMS} items per day. You have already ordered ${ordersToday} today, and have ${cart.length} in your cart.`);
+                return;
+            }
+
             cart.push({ name, price });
             updateCart();
         }
@@ -193,6 +218,20 @@
             `).join('');
             badge.innerText = cart.length;
             badge.classList.toggle('hidden', cart.length === 0);
+            
+            // Update Limit Display
+            const { ordersToday } = getDailyOrderData();
+            const limitDisplay = document.getElementById('daily-limit-display');
+            if (limitDisplay) {
+                limitDisplay.innerText = `${ordersToday + cart.length}/${MAX_DAILY_ITEMS}`;
+                if (ordersToday + cart.length >= MAX_DAILY_ITEMS) {
+                    limitDisplay.classList.add('text-red-400');
+                    limitDisplay.classList.remove('text-violet-400');
+                } else {
+                    limitDisplay.classList.remove('text-red-400');
+                    limitDisplay.classList.add('text-violet-400');
+                }
+            }
         }
 
         function toggleCart() {
@@ -239,6 +278,12 @@
                 return;
             }
 
+            const { today, ordersToday } = getDailyOrderData();
+            if (ordersToday + cart.length > MAX_DAILY_ITEMS) {
+                alert(`Cannot proceed. This exceeds your daily limit of ${MAX_DAILY_ITEMS} items.`);
+                return;
+            }
+
             const checkoutBtn = document.getElementById('checkout-btn');
             checkoutBtn.disabled = true;
             checkoutBtn.innerText = "Processing...";
@@ -255,6 +300,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).then(() => {
+                // Save the new daily total
+                localStorage.setItem('lastOrderDate', today);
+                localStorage.setItem('ordersToday', ordersToday + cart.length);
+
                 alert(`Thanks ${name}! Order processed. A magical courier will deliver your items soon!`);
                 cart = [];
                 updateCart();
