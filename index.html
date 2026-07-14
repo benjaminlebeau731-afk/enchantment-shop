@@ -82,6 +82,14 @@
             <span class="text-slate-400">Shipping Fee</span>
             <span id="shipping-fee-display" class="text-emerald-400 font-bold">0 Emeralds</span>
         </div>
+
+        <!-- Total Cost Display -->
+        <div class="border-t border-slate-700 mt-2 pt-4 mb-4 flex justify-between text-sm">
+            <span class="text-slate-200 font-bold">Total Cost</span>
+            <div id="total-cost-display" class="text-right flex flex-col items-end gap-1">
+                <span class="text-slate-400 font-normal">Empty</span>
+            </div>
+        </div>
         
         <!-- Daily Limit Tracker -->
         <div class="mb-4 flex justify-between text-sm">
@@ -169,6 +177,37 @@
         let cart = [];
         const MAX_DAILY_ITEMS = 8;
 
+        function calculateTotal() {
+            const totals = {};
+            let shippingFee = cart.length; // 1 Emerald per item
+
+            cart.forEach(item => {
+                // Parse the price, e.g. "I: 2 Diamonds" -> "2 Diamonds"
+                const costPart = item.price.split(':')[1];
+                if (costPart) {
+                    const cleanCost = costPart.trim();
+                    const parts = cleanCost.split(' ');
+                    const amount = parseInt(parts[0]);
+                    let material = parts.slice(1).join(' ');
+
+                    // Normalize plurals for consistency
+                    if (material === "Emerald") material = "Emeralds";
+                    if (material === "Diamond") material = "Diamonds";
+
+                    if (!isNaN(amount) && material) {
+                        totals[material] = (totals[material] || 0) + amount;
+                    }
+                }
+            });
+
+            // Add shipping fee to emeralds
+            if (shippingFee > 0) {
+                totals['Emeralds'] = (totals['Emeralds'] || 0) + shippingFee;
+            }
+
+            return totals;
+        }
+
         function getDailyOrderData() {
             const today = new Date().toLocaleDateString();
             const storedDate = localStorage.getItem('lastOrderDate');
@@ -236,6 +275,19 @@
             if (shippingFeeDisplay) {
                 const fee = cart.length;
                 shippingFeeDisplay.innerText = `+${fee} Emerald${fee !== 1 ? 's' : ''}`;
+            }
+
+            // Update Total Cost Display
+            const totalCostDisplay = document.getElementById('total-cost-display');
+            if (totalCostDisplay) {
+                const totals = calculateTotal();
+                if (Object.keys(totals).length === 0) {
+                    totalCostDisplay.innerHTML = '<span class="text-slate-400 font-normal">Empty</span>';
+                } else {
+                    totalCostDisplay.innerHTML = Object.entries(totals)
+                        .map(([mat, amt]) => `<span class="text-violet-400 font-bold">${amt} ${mat}</span>`)
+                        .join('');
+                }
             }
             
             // Update Limit Display
@@ -333,12 +385,18 @@
 
             const discordName = localStorage.getItem('discordName') || 'Not provided';
 
+            // Calculate the total string for Discord
+            const totals = calculateTotal();
+            const totalString = Object.keys(totals).length > 0 
+                ? Object.entries(totals).map(([mat, amt]) => `**${amt}** ${mat}`).join(', ')
+                : "0 Items";
+
             // Send order to Discord Webhook
             const webhookURL = "https://discord.com/api/webhooks/1526388217912360990/cNzTj_Ft6-JR4ucM5iaadPbbKbuiy_fDorzrYdC7ALidpZoP9Kjtxrm6MXG_XEy1eqfV";
             const itemList = cart.map(i => `- **${i.name}** (${i.price})`).join('\n');
             const fee = cart.length;
             const payload = {
-                content: `🚨 **New Enchantment Order!** 🚨\n**Customer:** \`${name}\`\n**Discord Contact:** ${discordName}\n**Items Ordered:**\n${itemList}\n\n*Note: Don't forget to collect the +${fee} Emerald shipping fee!*`
+                content: `🚨 **New Enchantment Order!** 🚨\n**Customer:** \`${name}\`\n**Discord Contact:** ${discordName}\n**Items Ordered:**\n${itemList}\n\n🛒 **Total Cost:** ${totalString}\n*(Includes +${fee} Emeralds shipping fee)*`
             };
 
             fetch(webhookURL, {
