@@ -440,23 +440,6 @@
         
         // This will render products and apply active CSS classes to the 'All' buttons
         filterCategory('All'); 
-
-        window.addEventListener('DOMContentLoaded', () => {
-            // Retrieve customer name if it exists, otherwise use 'A visitor'
-            const visitorName = localStorage.getItem('customerName') || 'A visitor';
-            
-            // Webhook payload
-            const visitPayload = {
-                content: `👁️ **Someone visited the Enchanting Shop!** \n**Visitor:** \`${visitorName}\``
-            };
-
-            // Send notification to Discord Webhook
-            fetch("https://discord.com/api/webhooks/1526388217912360990/cNzTj_Ft6-JR4ucM5iaadPbbKbuiy_fDorzrYdC7ALidpZoP9Kjtxrm6MXG_XEy1eqfV", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(visitPayload)
-            }).catch(err => console.error("Failed to send visit notification.", err));
-        });
     </script>
 </body>
 </html>
