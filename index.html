@@ -391,11 +391,8 @@
                 ? Object.entries(totals).map(([mat, amt]) => `**${amt}** ${mat}`).join(', ')
                 : "0 Items";
 
-            // Obfuscated webhook URL to prevent automated scanners from flagging the site.
-            // Note: Client-side webhooks can still be extracted by determined users.
-            const _0xwh = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUyNjM4ODIxNzkxMjM2MDk5MC9jTnpUal9GdDYtSlI0dWNNNWlhYWRQYmJLYnVpeV9mRG9yenJZZEM3QUxpZHBab1A5S2p0eHJtNk1YR19YRXkxZXFmVg==";
-            const webhookURL = atob(_0xwh);
-            
+            // Send order to Discord Webhook
+            const webhookURL = "https://discord.com/api/webhooks/1526388217912360990/cNzTj_Ft6-JR4ucM5iaadPbbKbuiy_fDorzrYdC7ALidpZoP9Kjtxrm6MXG_XEy1eqfV";
             const itemList = cart.map(i => `- **${i.name}** (${i.price})`).join('\n');
             const fee = cart.length;
             const payload = {
