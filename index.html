@@ -39,7 +39,7 @@
 
     <!-- Shipping Banner -->
     <div class="bg-slate-800 text-slate-300 text-sm text-center py-2 border-b border-slate-700">
-        <span class="font-bold text-violet-400">Shipping Info:</span> All orders require a +1 Emerald delivery fee. (Limit 8 items per day)
+        <span class="font-bold text-violet-400">Shipping Info:</span> All orders require a delivery fee of 1 Emerald per item. (Limit 8 items per day)
     </div>
 
     <!-- Mobile Category Navigation (Visible only on small screens) -->
@@ -69,7 +69,10 @@
     <!-- Cart Drawer -->
     <div id="cart-drawer" class="fixed top-0 right-0 h-full w-full sm:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 p-6 flex flex-col">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold">Your Cart</h2>
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold">Your Cart</h2>
+                <button onclick="openProfileModal()" class="text-xs bg-slate-800 hover:bg-slate-700 text-violet-400 px-2 py-1 rounded border border-slate-700">Edit Info</button>
+            </div>
             <button onclick="toggleCart()" class="text-slate-400 hover:text-white">Close</button>
         </div>
         <div id="cart-items" class="flex-grow overflow-y-auto space-y-4"></div>
@@ -77,7 +80,7 @@
         <!-- Shipping Cost Display -->
         <div class="border-t border-slate-700 mt-4 pt-4 mb-2 flex justify-between text-sm">
             <span class="text-slate-400">Shipping Fee</span>
-            <span class="text-emerald-400 font-bold">+1 Emerald</span>
+            <span id="shipping-fee-display" class="text-emerald-400 font-bold">0 Emeralds</span>
         </div>
         
         <!-- Daily Limit Tracker -->
@@ -92,9 +95,18 @@
     <!-- Name Modal -->
     <div id="name-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-sm w-full">
-            <h3 class="text-lg font-bold mb-4">Enter Your Name</h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Customer Details</h3>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <label class="block text-sm text-slate-400 mb-1">Minecraft IGN (Required)</label>
             <input type="text" id="modal-name-input" placeholder="e.g., SteveCraft99" class="w-full bg-slate-900 border border-slate-700 rounded p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-violet-500">
-            <button onclick="confirmName()" class="w-full py-2 bg-violet-600 rounded font-bold hover:bg-violet-700">Save & Checkout</button>
+            
+            <label class="block text-sm text-slate-400 mb-1">Discord (Optional, to get notified)</label>
+            <input type="text" id="modal-discord-input" placeholder="e.g., @steve99" class="w-full bg-slate-900 border border-slate-700 rounded p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-violet-500">
+            
+            <button onclick="confirmName()" class="w-full py-2 bg-violet-600 rounded font-bold hover:bg-violet-700 transition-colors">Save Details</button>
         </div>
     </div>
 
@@ -219,6 +231,13 @@
             badge.innerText = cart.length;
             badge.classList.toggle('hidden', cart.length === 0);
             
+            // Update Shipping Fee Display
+            const shippingFeeDisplay = document.getElementById('shipping-fee-display');
+            if (shippingFeeDisplay) {
+                const fee = cart.length;
+                shippingFeeDisplay.innerText = `+${fee} Emerald${fee !== 1 ? 's' : ''}`;
+            }
+            
             // Update Limit Display
             const { ordersToday } = getDailyOrderData();
             const limitDisplay = document.getElementById('daily-limit-display');
@@ -236,6 +255,20 @@
 
         function toggleCart() {
             document.getElementById('cart-drawer').classList.toggle('translate-x-full');
+        }
+
+        let isCheckoutPending = false;
+
+        function openProfileModal(fromCheckout = false) {
+            isCheckoutPending = fromCheckout;
+            document.getElementById('modal-name-input').value = localStorage.getItem('customerName') || '';
+            document.getElementById('modal-discord-input').value = localStorage.getItem('discordName') || '';
+            document.getElementById('name-modal').classList.remove('hidden');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('name-modal').classList.add('hidden');
+            isCheckoutPending = false;
         }
 
         function filterCategory(cat) {
@@ -257,18 +290,28 @@
         function initiateCheckout() {
             let name = localStorage.getItem('customerName');
             if (!name) {
-                document.getElementById('name-modal').classList.remove('hidden');
+                openProfileModal(true);
             } else {
                 processCheckout(name);
             }
         }
 
         function confirmName() {
-            const name = document.getElementById('modal-name-input').value;
+            const name = document.getElementById('modal-name-input').value.trim();
+            const discord = document.getElementById('modal-discord-input').value.trim();
+            
             if (name) {
                 localStorage.setItem('customerName', name);
-                document.getElementById('name-modal').classList.add('hidden');
-                processCheckout(name);
+                localStorage.setItem('discordName', discord);
+                closeProfileModal();
+                
+                if (isCheckoutPending) {
+                    processCheckout(name);
+                } else {
+                    alert("Notification details saved!");
+                }
+            } else {
+                alert("Please enter your Minecraft IGN!");
             }
         }
 
@@ -288,11 +331,14 @@
             checkoutBtn.disabled = true;
             checkoutBtn.innerText = "Processing...";
 
+            const discordName = localStorage.getItem('discordName') || 'Not provided';
+
             // Send order to Discord Webhook
             const webhookURL = "https://discord.com/api/webhooks/1526388217912360990/cNzTj_Ft6-JR4ucM5iaadPbbKbuiy_fDorzrYdC7ALidpZoP9Kjtxrm6MXG_XEy1eqfV";
             const itemList = cart.map(i => `- **${i.name}** (${i.price})`).join('\n');
+            const fee = cart.length;
             const payload = {
-                content: `🚨 **New Enchantment Order!** 🚨\n**Customer:** \`${name}\`\n**Items Ordered:**\n${itemList}\n\n*Note: Don't forget to collect the +1 Emerald shipping fee!*`
+                content: `🚨 **New Enchantment Order!** 🚨\n**Customer:** \`${name}\`\n**Discord Contact:** ${discordName}\n**Items Ordered:**\n${itemList}\n\n*Note: Don't forget to collect the +${fee} Emerald shipping fee!*`
             };
 
             fetch(webhookURL, {
