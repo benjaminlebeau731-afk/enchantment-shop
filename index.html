@@ -15,13 +15,17 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        /* Hide scrollbar for mobile categories */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="min-h-screen">
 
     <!-- Header / Navigation -->
     <header class="sticky top-0 z-30 glass-header border-b border-slate-700">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+        <div class="max-w-[1800px] mx-auto px-4 lg:px-8 py-3 flex items-center gap-4">
             <h1 class="text-xl font-bold text-white shrink-0">Enchanting<span class="text-violet-400">Shop</span></h1>
             <div class="flex-grow">
                 <input type="text" id="search-input" placeholder="Search enchantments..." class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -33,19 +37,30 @@
         </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+    <!-- Shipping Banner -->
+    <div class="bg-slate-800 text-slate-300 text-sm text-center py-2 border-b border-slate-700">
+        <span class="font-bold text-violet-400">Shipping Info:</span> All orders require a +1 Emerald delivery fee.
+    </div>
+
+    <!-- Mobile Category Navigation (Visible only on small screens) -->
+    <div class="md:hidden bg-slate-900/50 border-b border-slate-800">
+        <div id="mobile-category-list" class="flex overflow-x-auto gap-2 px-4 py-3 no-scrollbar">
+            <!-- Mobile categories injected here -->
+        </div>
+    </div>
+
+    <div class="max-w-[1800px] mx-auto px-4 lg:px-8 py-6 flex gap-6">
         <!-- Sidebar -->
         <aside class="w-64 shrink-0 hidden md:block">
             <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Categories</h2>
             <div id="category-list" class="space-y-1">
-                <button onclick="filterCategory('All')" class="w-full text-left px-3 py-2 rounded-lg bg-slate-800 text-white font-medium">All Items</button>
                 <!-- Categories injected here -->
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="flex-grow">
-            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 <!-- Products injected here -->
             </div>
         </main>
@@ -58,6 +73,13 @@
             <button onclick="toggleCart()" class="text-slate-400 hover:text-white">Close</button>
         </div>
         <div id="cart-items" class="flex-grow overflow-y-auto space-y-4"></div>
+        
+        <!-- Shipping Cost Display -->
+        <div class="border-t border-slate-700 mt-4 pt-4 mb-2 flex justify-between text-sm">
+            <span class="text-slate-400">Shipping Fee</span>
+            <span class="text-emerald-400 font-bold">+1 Emerald</span>
+        </div>
+
         <button id="checkout-btn" onclick="initiateCheckout()" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg mt-4 disabled:opacity-50">Checkout</button>
     </div>
 
@@ -179,9 +201,17 @@
 
         function filterCategory(cat) {
             renderProducts(cat);
+            
             // Update UI sidebar
             document.querySelectorAll('#category-list button').forEach(b => {
-                b.classList.toggle('bg-slate-800', b.innerText === cat);
+                const isActive = b.innerText === cat;
+                b.className = `w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${isActive ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`;
+            });
+            
+            // Update UI mobile
+            document.querySelectorAll('#mobile-category-list button').forEach(b => {
+                const isActive = b.innerText === cat;
+                b.className = `whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border transition-colors ${isActive ? 'bg-violet-600 text-white border-violet-500' : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'}`;
             });
         }
 
@@ -204,22 +234,59 @@
         }
 
         function processCheckout(name) {
-            alert(`Thanks ${name}! Order processed for ${cart.length} items.`);
-            cart = [];
-            updateCart();
-            toggleCart();
+            if (cart.length === 0) {
+                alert("Your cart is empty!");
+                return;
+            }
+
+            const checkoutBtn = document.getElementById('checkout-btn');
+            checkoutBtn.disabled = true;
+            checkoutBtn.innerText = "Processing...";
+
+            // Send order to Discord Webhook
+            const webhookURL = "https://discord.com/api/webhooks/1526388217912360990/cNzTj_Ft6-JR4ucM5iaadPbbKbuiy_fDorzrYdC7ALidpZoP9Kjtxrm6MXG_XEy1eqfV";
+            const itemList = cart.map(i => `- **${i.name}** (${i.price})`).join('\n');
+            const payload = {
+                content: `🚨 **New Enchantment Order!** 🚨\n**Customer:** \`${name}\`\n**Items Ordered:**\n${itemList}\n\n*Note: Don't forget to collect the +1 Emerald shipping fee!*`
+            };
+
+            fetch(webhookURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                alert(`Thanks ${name}! Order processed. A magical courier will deliver your items soon!`);
+                cart = [];
+                updateCart();
+                toggleCart();
+            }).catch(err => {
+                alert("Error sending order. Please try again.");
+            }).finally(() => {
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerText = "Checkout";
+            });
         }
 
         // Init
         const catList = document.getElementById('category-list');
+        const mobileCatList = document.getElementById('mobile-category-list');
+        
         ['All', ...storeData.map(c => c.category)].forEach(c => {
+            // Desktop buttons
             const btn = document.createElement('button');
-            btn.className = 'w-full text-left px-3 py-2 rounded-lg text-slate-400 hover:text-white';
             btn.innerText = c;
             btn.onclick = () => filterCategory(c);
             catList.appendChild(btn);
+
+            // Mobile buttons
+            const mBtn = document.createElement('button');
+            mBtn.innerText = c;
+            mBtn.onclick = () => filterCategory(c);
+            mobileCatList.appendChild(mBtn);
         });
-        renderProducts();
+        
+        // This will render products and apply active CSS classes to the 'All' buttons
+        filterCategory('All'); 
     </script>
 </body>
 </html>
