@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enchantment Store</title>
+    <style>
+        /* Base Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #313338;
+            color: #dbdee1;
+            margin: 0;
+            padding: 40px 20px 100px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+        
+        .shipping-note {
+            color: #a3a6aa;
+            margin-bottom: 40px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Container for the whole store */
+        #store-container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Category Styling */
+        .category-title {
+            font-size: 1.8em;
+            color: #ffffff;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3f4147;
+        }
+
+        /* Grid layout for items */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        /* Individual Item Cards */
+        .item-card {
+            background-color: #2b2d31;
+            border: 1px solid #1e1f22;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .item-name {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .item-effect {
+            font-size: 0.95em;
+            color: #b5bac1;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+
+        .item-cost {
+            background-color: #1e1f22;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #949ba4;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            white-space: pre-line;
+        }
+
+        /* Buttons */
+        .add-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #23a559; /* Discord Green */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        .add-btn:hover {
+            background-color: #1a7a42;
+        }
+
+        .add-btn:disabled {
+            background-color: #4f545c;
+            cursor: not-allowed;
+        }
+
+        /* Floating Cart UI */
+        #cart-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            background-color: #1e1f22;
+            border: 2px solid #5865F2;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        #cart-panel h3 {
+            margin: 0;
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #cart-items-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #cart-items-list li {
+            background: #2b2d31;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .remove-btn {
+            background: #da373c; /* Discord Red */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .remove-btn:hover {
+            background: #a1282c;
+        }
+
+        .checkout-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #5865F2; /* Discord Blurple */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .checkout-btn:hover {
+            background-color: #4752C4;
+        }
+
+        .checkout-btn:disabled {
+            background-color: #4f545c;
+            cursor: not-allowed;
+        }
+        
+        .limit-text {
+            font-size: 0.8em;
+            color: #a3a6aa;
+            text-align: center;
+            margin-top: -5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>✨ The Enchantment Shop</h1>
+    <p class="shipping-note">Note: All orders require a +1 Emerald shipping fee. (Limit 5 items per day)</p>
+
+    <div id="store-container"></div>
+
+    <!-- Floating Cart Panel -->
+    <div id="cart-panel">
+        <h3>🛒 Your Cart <span id="cart-count">0/5</span></h3>
+        <ul id="cart-items-list"></ul>
+        <button id="checkout-btn" class="checkout-btn" onclick="checkout()">Proceed to Checkout</button>
+        <div class="limit-text" id="daily-limit-status"></div>
+    </div>
+
+    <script>
+        // --- 1. STORE DATA ---
+        const storeData = [
+            {
+                category: "🛡️ Armor Enchantments",
+                items: [
+                    { name: "Protection", effect: "General damage reduction (Essential)", cost: "I: 2 Diamonds\nII: 4 Diamonds\nIII: 8 Diamonds\nIV: 16 Diamonds" },
+                    { name: "Fire Protection", effect: "Reduces fire/lava damage", cost: "I: 2 Gold Ingots\nII: 4 Gold Ingots\nIII: 6 Gold Ingots\nIV: 10 Gold Ingots" },
+                    { name: "Blast Protection", effect: "Reduces explosion damage (Niche)", cost: "I: 5 Iron Ingots\nII: 10 Iron Ingots\nIII: 15 Iron Ingots\nIV: 25 Iron Ingots" },
+                    { name: "Projectile Protection", effect: "Reduces arrow/trident damage (Niche)", cost: "I: 10 Copper Ingots\nII: 20 Copper Ingots\nIII: 30 Copper Ingots\nIV: 50 Copper Ingots" },
+                    { name: "Feather Falling", effect: "Reduces fall damage", cost: "I: 2 Diamonds\nII: 4 Diamonds\nIII: 8 Diamonds\nIV: 16 Diamonds" },
+                    { name: "Thorns", effect: "Damages attackers", cost: "I: 3 Emeralds\nII: 6 Emeralds\nIII: 10 Emeralds" },
+                    { name: "Respiration", effect: "Underwater breathing time (Niche)", cost: "I: 5 Lapis Lazuli\nII: 10 Lapis Lazuli\nIII: 20 Lapis Lazuli" },
+                    { name: "Aqua Affinity", effect: "Normal underwater mining speed (Niche)", cost: "I: 15 Lapis Lazuli" },
+                    { name: "Depth Strider", effect: "Underwater movement speed", cost: "I: 3 Lapis Lazuli\nII: 6 Lapis Lazuli\nIII: 12 Lapis Lazuli" },
+                    { name: "Frost Walker", effect: "Turns water to ice beneath you (Niche)", cost: "I: 8 Gold Ingots\nII: 16 Gold Ingots" },
+                    { name: "Soul Speed", effect: "Faster on Soul Sand/Soil", cost: "I: 3 Gold Ingots\nII: 6 Gold Ingots\nIII: 12 Gold Ingots" },
+                    { name: "Swift Sneak", effect: "Faster crouching speed", cost: "I: 4 Diamonds\nII: 10 Diamonds\nIII: 20 Diamonds" },
+                    { name: "Curse of Binding", effect: "Armor cannot be removed (Rare Curse)", cost: "I: 10 Emeralds" }
+                ]
+            },
+            {
+                category: "⚔️ Melee Weapons",
+                items: [
+                    { name: "Sharpness", effect: "Extra melee damage (Essential)", cost: "I: 2 Diamonds\nII: 4 Diamonds\nIII: 8 Diamonds\nIV: 16 Diamonds\nV: 24 Diamonds" },
+                    { name: "Smite", effect: "Extra damage to undead", cost: "I: 2 Iron Ingots\nII: 4 Iron Ingots\nIII: 8 Iron Ingots\nIV: 12 Iron Ingots\nV: 16 Iron Ingots" },
+                    { name: "Bane of Arthropods", effect: "Extra damage to spiders (Niche)", cost: "I: 10 Coal\nII: 20 Coal\nIII: 30 Coal\nIV: 40 Coal\nV: 64 Coal" },
+                    { name: "Knockback", effect: "Pushes enemies back (Niche)", cost: "I: 8 Iron Ingots\nII: 16 Iron Ingots" },
+                    { name: "Fire Aspect", effect: "Sets enemies on fire", cost: "I: 5 Gold Ingots\nII: 10 Gold Ingots" },
+                    { name: "Looting", effect: "Better mob drops", cost: "I: 4 Diamonds\nII: 8 Diamonds\nIII: 16 Diamonds" },
+                    { name: "Sweeping Edge", effect: "Increases sweep attack damage", cost: "I: 3 Emeralds\nII: 6 Emeralds\nIII: 10 Emeralds" },
+                    { name: "Density", effect: "Increases Mace fall damage", cost: "I: 2 Iron Ingots\nII: 4 Iron Ingots\nIII: 8 Iron Ingots\nIV: 12 Iron Ingots\nV: 16 Iron Ingots" },
+                    { name: "Breach", effect: "Mace attacks bypass armor", cost: "I: 3 Diamonds\nII: 6 Diamonds\nIII: 12 Diamonds\nIV: 20 Diamonds" },
+                    { name: "Wind Burst", effect: "Mace emits upward wind burst", cost: "I: 10 Diamonds\nII: 24 Diamonds\nIII: 1 Netherite Ingot" }
+                ]
+            },
+            {
+                category: "🏹 Ranged Weapons",
+                items: [
+                    { name: "Power", effect: "Extra bow damage", cost: "I: 2 Diamonds\nII: 4 Diamonds\nIII: 8 Diamonds\nIV: 16 Diamonds\nV: 24 Diamonds" },
+                    { name: "Punch", effect: "Extra bow knockback (Niche)", cost: "I: 8 Iron Ingots\nII: 16 Iron Ingots" },
+                    { name: "Flame", effect: "Flaming arrows", cost: "I: 10 Gold Ingots" },
+                    { name: "Infinity", effect: "Unlimited standard arrows", cost: "I: 15 Diamonds" },
+                    { name: "Piercing", effect: "Crossbow arrows pass through", cost: "I: 2 Iron Ingots\nII: 4 Iron Ingots\nIII: 8 Iron Ingots\nIV: 12 Iron Ingots" },
+                    { name: "Multishot", effect: "Shoot 3 arrows for 1 arrow", cost: "I: 10 Emeralds" },
+                    { name: "Quick Charge", effect: "Faster crossbow reload", cost: "I: 5 Redstone Dust\nII: 10 Redstone Dust\nIII: 20 Redstone Dust" },
+                    { name: "Loyalty", effect: "Trident returns when thrown", cost: "I: 3 Lapis Lazuli\nII: 6 Lapis Lazuli\nIII: 12 Lapis Lazuli" },
+                    { name: "Riptide", effect: "Launches player in rain/water", cost: "I: 4 Diamonds\nII: 8 Diamonds\nIII: 16 Diamonds" },
+                    { name: "Channeling", effect: "Trident summons lightning", cost: "I: 15 Gold Ingots" },
+                    { name: "Impaling", effect: "Extra damage to aquatic mobs (Niche)", cost: "I: 10 Copper Ingots\nII: 20 Copper Ingots\nIII: 30 Copper Ingots\nIV: 40 Copper Ingots\nV: 64 Copper Ingots" }
+                ]
+            },
+            {
+                category: "⛏️ Tools & General",
+                items: [
+                    { name: "Efficiency", effect: "Faster mining speed", cost: "I: 2 Diamonds\nII: 4 Diamonds\nIII: 8 Diamonds\nIV: 16 Diamonds\nV: 24 Diamonds" },
+                    { name: "Unbreaking", effect: "Reduces durability loss", cost: "I: 3 Diamonds\nII: 6 Diamonds\nIII: 12 Diamonds" },
+                    { name: "Fortune", effect: "Multiplies ore/crop drops", cost: "I: 5 Diamonds\nII: 10 Diamonds\nIII: 20 Diamonds" },
+                    { name: "Silk Touch", effect: "Mine blocks as they are", cost: "I: 12 Diamonds" },
+                    { name: "Luck of the Sea", effect: "Better fishing loot", cost: "I: 3 Lapis Lazuli\nII: 6 Lapis Lazuli\nIII: 12 Lapis Lazuli" },
+                    { name: "Lure", effect: "Faster fishing bite rate (Niche)", cost: "I: 10 Copper Ingots\nII: 20 Copper Ingots\nIII: 30 Copper Ingots" },
+                    { name: "Mending", effect: "Repairs items with XP", cost: "I: 1 Netherite Ingot" },
+                    { name: "Curse of Vanishing", effect: "Item disappears on death (Rare Curse)", cost: "I: 10 Emeralds" }
+                ]
+            }
+        ];
+
+        // --- 2. BUILD THE STORE HTML ---
+        const storeContainer = document.getElementById('store-container');
+
+        storeData.forEach(categoryData => {
+            const categoryHeader = document.createElement('h2');
+            categoryHeader.className = 'category-title';
+            categoryHeader.innerText = categoryData.category;
+            storeContainer.appendChild(categoryHeader);
+
+            const grid = document.createElement('div');
+            grid.className = 'items-grid';
+
+            categoryData.items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-effect">${item.effect}</div>
+                        <div class="item-cost"><strong>Costs:</strong><br>${item.cost}</div>
+                    </div>
+                    <button class="add-btn" onclick="addToCart('${item.name}')">Add to Cart</button>
+                `;
+                grid.appendChild(card);
+            });
+            storeContainer.appendChild(grid);
+        });
+
+        // --- 3. CART & DAILY LIMIT LOGIC ---
+        let cart = [];
+        const MAX_DAILY_ITEMS = 5;
+
+        function getDailyOrderData() {
+            const today = new Date().toLocaleDateString();
+            const storedDate = localStorage.getItem('lastOrderDate');
+            let ordersToday = parseInt(localStorage.getItem('ordersToday')) || 0;
+
+            if (storedDate !== today) {
+                ordersToday = 0; // Reset count on a new day
+            }
+            return { today, ordersToday };
+        }
+
+        function addToCart(itemName) {
+            const { ordersToday } = getDailyOrderData();
+            
+            if (ordersToday + cart.length >= MAX_DAILY_ITEMS) {
+                alert(`Daily limit reached! You can only order a maximum of 5 items per day. You have already ordered ${ordersToday} today, and have ${cart.length} in your cart.`);
+                return;
+            }
+
+            cart.push(itemName);
+            updateCartUI();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const cartPanel = document.getElementById('cart-panel');
+            const cartList = document.getElementById('cart-items-list');
+            const cartCount = document.getElementById('cart-count');
+            const checkoutBtn = document.getElementById('checkout-btn');
+            const limitStatus = document.getElementById('daily-limit-status');
+
+            const { ordersToday } = getDailyOrderData();
+
+            if (cart.length > 0) {
+                cartPanel.style.display = 'flex';
+            } else {
+                cartPanel.style.display = 'none';
+            }
+
+            cartList.innerHTML = '';
+            cart.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${item}</span> <button class="remove-btn" onclick="removeFromCart(${index})">X</button>`;
+                cartList.appendChild(li);
+            });
+
+            cartCount.innerText = `${cart.length}`;
+            limitStatus.innerText = `Ordered today: ${ordersToday}/5`;
+            checkoutBtn.disabled = cart.length === 0;
+        }
+
+        // --- 4. CHECKOUT & WEBHOOK LOGIC ---
+        function checkout() {
+            if (cart.length === 0) return;
+
+            const { today, ordersToday } = getDailyOrderData();
+            
+            if (ordersToday + cart.length > MAX_DAILY_ITEMS) {
+                alert("Cannot proceed. This checkout exceeds your daily limit of 5 items.");
+                return;
+            }
+
+            // --- ASK FOR NAME AND SAVE IT ---
+            let customerName = localStorage.getItem('customerName');
+            
+            if (!customerName) {
+                customerName = prompt("Welcome! Please enter your name or Discord username for this order:");
+                
+                // If they hit cancel or leave it blank, stop the checkout
+                if (!customerName || customerName.trim() === "") {
+                    alert("Checkout cancelled. We need a name so we know who to give the items to!");
+                    return;
+                }
+                
+                // Save it for future orders
+                localStorage.setItem('customerName', customerName.trim());
+                alert(`Thanks, ${customerName.trim()}! Your name has been saved for future checkouts.`);
+            }
+
+            // Your live Discord Webhook URL
+            const webhookURL = "https://discord.com/api/webhooks/1526388217912360990/cNzTj_Ft6-JR4ucM5iaadPbbKbuiy_fDorzrYdC7ALidpZoP9Kjtxrm6MXG_XEy1eqfV"; 
+
+            const itemList = cart.map(item => `- **${item}**`).join('\n');
+            const payload = {
+                content: `🚨 **New Checkout Alert!** 🚨\n**Customer:** \`${customerName}\`\n**Items Ordered:**\n${itemList}\n*(Total items: ${cart.length} | Reach out to them to confirm tier levels & shipping!)*`
+            };
+
+            const checkoutBtn = document.getElementById('checkout-btn');
+            checkoutBtn.disabled = true;
+            checkoutBtn.innerText = "Processing...";
+
+            fetch(webhookURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (response.ok) {
+                    localStorage.setItem('lastOrderDate', today);
+                    localStorage.setItem('ordersToday', ordersToday + cart.length);
+
+                    alert(`✅ Successfully checked out! Your order has been sent to the Discord server.`);
+                    cart = []; 
+                    updateCartUI();
+                } else {
+                    alert("❌ Failed to send checkout. Please try again.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("❌ An error occurred during checkout.");
+            })
+            .finally(() => {
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerText = "Proceed to Checkout";
+            });
+        }
+    </script>
+</body>
+</html>
